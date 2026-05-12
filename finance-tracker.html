@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #181818;
+    --bg3: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --text2: #999;
+    --text3: #555;
+    --green: #a8e6a3;
+    --green-bg: rgba(168,230,163,0.1);
+    --red: #f09898;
+    --red-bg: rgba(240,152,152,0.1);
+    --amber: #f5c842;
+    --amber-bg: rgba(245,200,66,0.08);
+    --blue: #89b4fa;
+    --blue-bg: rgba(137,180,250,0.08);
+    --accent: #f5c842;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+  .nav-logo { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+  .nav-logo span { color: var(--accent); }
+  .nav-tabs { display: flex; gap: 2px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+  .nav-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; border: none; background: none; color: var(--text2); transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .nav-tab.active { background: var(--bg3); color: var(--text); }
+  .nav-tab:hover:not(.active) { color: var(--text); }
+  .nav-sheet { font-size: 12px; color: var(--text3); text-decoration: none; display: flex; align-items: center; gap: 5px; transition: color 0.15s; }
+  .nav-sheet:hover { color: var(--text2); }
+
+  /* PAGES */
+  .page { display: none; padding: 28px; max-width: 760px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* SECTION HEADER */
+  .section-header { margin-bottom: 20px; }
+  .section-header h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; }
+  .section-header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* UPLOAD CARDS */
+  .upload-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; transition: border-color 0.2s; }
+  .upload-card:hover { border-color: var(--border2); }
+  .upload-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .upload-card-title { font-size: 14px; font-weight: 600; }
+  .tag { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; font-family: 'DM Mono', monospace; }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,200,66,0.2); }
+  .tag-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(168,230,163,0.2); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(137,180,250,0.2); }
+
+  /* FORM */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  label.field-label { font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.5px; text-transform: uppercase; }
+  select, input[type=text], input[type=password] {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 12px;
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  select:focus, input:focus { border-color: var(--border2); }
+  select option { background: var(--bg3); }
+
+  /* DROP ZONE */
+  .dropzone { border: 1.5px dashed var(--border2); border-radius: var(--radius-sm); padding: 22px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 12px; }
+  .dropzone:hover { border-color: var(--accent); background: var(--amber-bg); }
+  .dropzone.has-file { border-color: var(--green); background: var(--green-bg); }
+  .dropzone svg { display: block; margin: 0 auto 8px; opacity: 0.4; }
+  .dropzone p { font-size: 13px; color: var(--text2); }
+  .dropzone span { font-size: 11px; color: var(--text3); }
+  input[type=file] { display: none; }
+
+  /* BUTTON */
+  .btn { padding: 10px 20px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; transition: all 0.15s; letter-spacing: -0.2px; }
+  .btn-primary { background: var(--accent); color: #0f0f0f; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+  .form-footer { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+  /* STATUS */
+  .status-msg { font-size: 13px; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 10px; display: none; font-family: 'DM Mono', monospace; }
+  .status-msg.success { background: var(--green-bg); color: var(--green); border: 1px solid rgba(168,230,163,0.2); display: block; }
+  .status-msg.error { background: var(--red-bg); color: var(--red); border: 1px solid rgba(240,152,152,0.2); display: block; }
+  .status-msg.loading { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(137,180,250,0.2); display: block; }
+
+  /* METRICS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-bottom: 8px; }
+  .metric-value { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; font-family: 'DM Mono', monospace; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  /* MONTH CHIPS */
+  .month-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .chip { padding: 5px 13px; font-size: 12px; border-radius: 20px; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text2); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .chip:hover { border-color: var(--border2); color: var(--text); }
+  .chip.active { background: var(--accent); color: #0f0f0f; border-color: var(--accent); font-weight: 600; }
+
+  /* CATEGORY BARS */
+  .cat-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
+  .cat-section-title { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+  .cat-bar-row { margin-bottom: 12px; }
+  .cat-bar-meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .cat-bar-name { color: var(--text2); }
+  .cat-bar-val { color: var(--text); font-family: 'DM Mono', monospace; font-weight: 500; }
+  .cat-bar-bg { background: var(--bg3); border-radius: 3px; height: 4px; }
+  .cat-bar-fill { height: 4px; border-radius: 3px; transition: width 0.6s cubic-bezier(.16,1,.3,1); }
+
+  /* TRANSACTION LIST */
+  .txn-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .txn-section-title { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .txn-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .txn-row:last-child { border-bottom: none; }
+  .txn-row:hover { background: var(--bg3); }
+  .txn-left .txn-name { font-size: 13px; font-weight: 500; color: var(--text); max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .txn-left .txn-date { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .txn-right { text-align: right; }
+  .txn-amount { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .txn-cat { font-size: 10px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 52px 20px; color: var(--text3); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.3; }
+  .empty p { font-size: 14px; }
+  .empty span { font-size: 12px; margin-top: 4px; display: block; }
+
+  /* HOLDING ROW */
+  .holding-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .holding-row:last-child { border-bottom: none; }
+  .holding-row:hover { background: var(--bg3); }
+  .holding-name { font-size: 13px; font-weight: 500; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .holding-type { font-size: 10px; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .holding-vals { text-align: right; }
+  .holding-val { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .holding-gl { font-size: 11px; margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  /* PORTFOLIO SPLIT */
+  .split-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 10px 0 6px; gap: 2px; }
+  .split-seg { transition: width 0.5s ease; border-radius: 2px; }
+
+  @media (max-width: 600px) {
+    nav { padding: 14px 16px; }
+    .nav-tabs { display: none; }
+    .mobile-tabs { display: flex; }
+    .page { padding: 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* MOBILE BOTTOM NAV */
+  .mobile-tabs { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); padding: 8px 0 12px; z-index: 100; justify-content: space-around; }
+  .mobile-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 10px; padding: 4px 20px; transition: color 0.15s; }
+  .mobile-tab.active { color: var(--accent); }
+  .mobile-tab svg { width: 20px; height: 20px; }
+  @media (max-width: 600px) { .mobile-tabs { display: flex; } .page { padding-bottom: 80px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">💰 <span>Finance</span>Tracker</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('upload', this)">Upload</button>
+    <button class="nav-tab" onclick="showPage('expenses', this)">Expenses</button>
+    <button class="nav-tab" onclick="showPage('investments', this)">Investments</button>
+  </div>
+  <a class="nav-sheet" href="https://docs.google.com/spreadsheets/d/16cd1d11xHD98wpq2vbpMVhClDwOjihm0l0ppIeJTD2Y/edit" target="_blank">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Google Sheet
+  </a>
+</nav>
+
+<!-- MOBILE TABS -->
+<div class="mobile-tabs">
+  <button class="mobile-tab active" onclick="showPage('upload', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Upload
+  </button>
+  <button class="mobile-tab" onclick="showPage('expenses', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Expenses
+  </button>
+  <button class="mobile-tab" onclick="showPage('investments', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    Investments
+  </button>
+</div>
+
+<!-- UPLOAD PAGE -->
+<div class="page active" id="page-upload">
+  <div class="section-header">
+    <h2>Upload statements</h2>
+    <p>Parse your PDFs with AI — data is saved to your Google Sheet automatically</p>
+  </div>
+
+  <!-- EXPENSES UPLOAD -->
+  <div class="upload-card">
+    <div class="upload-card-header">
+      <div class="upload-card-title">Credit card statement</div>
+      <span class="tag tag-amber">Expenses</span>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="field-label">Bank / card issuer</label>
+        <select id="exp-bank">
+          <option>HDFC</option><option>SBI</option><option>Axis</option><option>ICICI</option><option>Kotak</option><option>Yes Bank</option><option>Amex</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="field-label">Statement month</label>
+        <input type="text" id="exp-month" placeholder="e.g. April 2025">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label class="field-label">PDF password (if locked)</label>
+      <input type="password" id="exp-password" placeholder="Leave blank if no password">
+    </div>
+    <div class="dropzone" id="exp-dz" onclick="document.getElementById('exp-file').click()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <p id="exp-dz-text">Click to upload credit card PDF</p>
+      <span>HDFC, SBI, Axis, ICICI, Kotak supported</span>
+    </div>
+    <input type="file" id="exp-file" accept=".pdf" onchange="onExpFile(this)">
+    <div class="form-footer">
+      <button class="btn btn-primary" id="exp-btn" onclick="processExpenses()" disabled>Parse & save to Sheet →</button>
+    </div>
+    <div class="status-msg" id="exp-status"></div>
+  </div>
+
+  <!-- INVESTMENTS UPLOAD -->
+  <div class="upload-card">
+    <div class="upload-card-header">
+      <div class="upload-card-title">Investment statement</div>
+      <span class="tag tag-green">Investments</span>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="field-label">Platform</label>
+        <select id="inv-platform">
+          <option>Zerodha</option><option>Groww</option><option>Kuvera</option><option>Upstox</option><option>Angel One</option><option>Paytm Money</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="field-label">Statement month</label>
+        <input type="text" id="inv-month" placeholder="e.g. April 2025">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label class="field-label">PDF password (if locked)</label>
+      <input type="password" id="inv-password" placeholder="Leave blank if no password">
+    </div>
+    <div class="dropzone" id="inv-dz" onclick="document.getElementById('inv-file').click()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <p id="inv-dz-text">Click to upload investment PDF</p>
+      <span>Zerodha, Groww, Kuvera, Upstox supported</span>
+    </div>
+    <input type="file" id="inv-file" accept=".pdf" onchange="onInvFile(this)">
+    <div class="form-footer">
+      <button class="btn btn-primary" id="inv-btn" onclick="processInvestments()" disabled>Parse & save to Sheet →</button>
+    </div>
+    <div class="status-msg" id="inv-status"></div>
+  </div>
+</div>
+
+<!-- EXPENSES PAGE -->
+<div class="page" id="page-expenses">
+  <div id="exp-empty-state" class="empty">
+    <div class="empty-icon">💳</div>
+    <p>No expenses yet</p>
+    <span>Upload a credit card statement to see your spending breakdown</span>
+  </div>
+  <div id="exp-dash" style="display:none;">
+    <div class="section-header">
+      <h2>Expenses</h2>
+      <p>Spending breakdown by category</p>
+    </div>
+    <div class="month-row" id="exp-chips"></div>
+    <div class="metrics-grid" id="exp-metrics"></div>
+    <div class="cat-section">
+      <div class="cat-section-title">By category</div>
+      <div id="exp-cats"></div>
+    </div>
+    <div class="txn-section" style="margin-top:16px;">
+      <div class="txn-section-title">Transactions</div>
+      <div id="exp-txns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- INVESTMENTS PAGE -->
+<div class="page" id="page-investments">
+  <div id="inv-empty-state" class="empty">
+    <div class="empty-icon">📈</div>
+    <p>No investments yet</p>
+    <span>Upload an investment statement to track your portfolio</span>
+  </div>
+  <div id="inv-dash" style="display:none;">
+    <div class="section-header">
+      <h2>Investments</h2>
+      <p>Portfolio overview by month</p>
+    </div>
+    <div class="month-row" id="inv-chips"></div>
+    <div class="metrics-grid" id="inv-metrics"></div>
+    <div class="cat-section">
+      <div class="cat-section-title">Portfolio split</div>
+      <div id="inv-split"></div>
+    </div>
+    <div class="txn-section" style="margin-top:16px;">
+      <div class="txn-section-title">Holdings</div>
+      <div id="inv-holdings"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7HO0AEvw4otJF8swBQTOMkMEJdJ2b-p4XaQev1-DQOcx6pZcj4iI3HGAZyuJ9uVXgiA/exec';
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const CATEGORIES = ['Food & dining','Travel & transport','Shopping','Bills & utilities','Health','Entertainment','Other'];
+const CAT_COLORS = {'Food & dining':'#f5c842','Travel & transport':'#89b4fa','Shopping':'#f38ba8','Bills & utilities':'#a8e6a3','Health':'#f09898','Entertainment':'#cba6f7','Other':'#555'};
+
+let expenseData = [];
+let investData = [];
+let selExpMonth = null;
+let selInvMonth = null;
+let expFile = null;
+let invFile = null;
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab, .mobile-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) {
+    btn.classList.add('active');
+    const idx = ['upload','expenses','investments'].indexOf(id);
+    document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
+    document.querySelectorAll('.mobile-tab')[idx]?.classList.add('active');
+  }
+}
+
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status-msg ' + type;
+  el.textContent = msg;
+}
+
+function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN', {maximumFractionDigits:0}); }
+
+async function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function onExpFile(input) {
+  expFile = input.files[0];
+  if (expFile) {
+    document.getElementById('exp-dz-text').textContent = expFile.name;
+    document.getElementById('exp-dz').classList.add('has-file');
+    document.getElementById('exp-btn').disabled = false;
+  }
+}
+
+function onInvFile(input) {
+  invFile = input.files[0];
+  if (invFile) {
+    document.getElementById('inv-dz-text').textContent = invFile.name;
+    document.getElementById('inv-dz').classList.add('has-file');
+    document.getElementById('inv-btn').disabled = false;
+  }
+}
+
+async function callClaude(messages, system) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, system, messages })
+  });
+  const d = await r.json();
+  return d.content?.map(b => b.text || '').join('') || '';
+}
+
+async function saveToSheet(tab, rows) {
+  await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ tab, rows })
+  });
+}
+
+async function processExpenses() {
+  if (!expFile) return;
+  const month = document.getElementById('exp-month').value || 'Unknown';
+  const bank = document.getElementById('exp-bank').value;
+  document.getElementById('exp-btn').disabled = true;
+  setStatus('exp-status', 'loading', '⏳ Reading PDF and categorizing transactions…');
+  try {
+    const b64 = await toBase64(expFile);
+    const system = `You are a financial data extractor. Extract all transactions from this ${bank} credit card statement. Return ONLY valid JSON, no markdown. Format: {"transactions":[{"date":"DD MMM YYYY","description":"...","amount":0.00,"category":"Food & dining|Travel & transport|Shopping|Bills & utilities|Health|Entertainment|Other"}]}`;
+    const raw = await callClaude([{
+      role: 'user',
+      content: [
+        {type:'document', source:{type:'base64', media_type:'application/pdf', data:b64}},
+        {type:'text', text:`Extract all transactions from this ${bank} credit card statement for ${month}. Return only JSON.`}
+      ]
+    }], system);
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const txns = parsed.transactions || [];
+    if (!txns.length) throw new Error('No transactions found in PDF');
+    txns.forEach(t => t.month = month);
+    expenseData = [...expenseData.filter(e => e.month !== month), ...txns];
+    const rows = txns.map(t => [month, t.date||'', t.description||'', t.amount||0, t.category||'Other']);
+    await saveToSheet('Expenses', rows);
+    renderExpenses();
+    setStatus('exp-status','success',`✓ ${txns.length} transactions saved for ${month}`);
+    setTimeout(() => showPage('expenses', document.querySelectorAll('.nav-tab')[1]), 800);
+  } catch(err) {
+    setStatus('exp-status','error','✗ ' + err.message);
+  }
+  document.getElementById('exp-btn').disabled = false;
+}
+
+async function processInvestments() {
+  if (!invFile) return;
+  const month = document.getElementById('inv-month').value || 'Unknown';
+  const platform = document.getElementById('inv-platform').value;
+  document.getElementById('inv-btn').disabled = true;
+  setStatus('inv-status','loading','⏳ Reading PDF and extracting holdings…');
+  try {
+    const b64 = await toBase64(invFile);
+    const system = `You are a financial data extractor. Extract all holdings from this ${platform} statement. Return ONLY valid JSON, no markdown. Format: {"holdings":[{"name":"...","type":"Stocks|Mutual Fund","quantity":0,"avg_price":0.00,"current_value":0.00,"gain_loss":0.00}]}`;
+    const raw = await callClaude([{
+      role: 'user',
+      content: [
+        {type:'document', source:{type:'base64', media_type:'application/pdf', data:b64}},
+        {type:'text', text:`Extract all holdings from this ${platform} statement for ${month}. Return only JSON.`}
+      ]
+    }], system);
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const holdings = parsed.holdings || [];
+    if (!holdings.length) throw new Error('No holdings found in PDF');
+    holdings.forEach(h => h.month = month);
+    investData = [...investData.filter(i => i.month !== month), ...holdings];
+    const rows = holdings.map(h => [month, h.name||'', h.type||'', h.quantity||0, h.avg_price||0, h.current_value||0, h.gain_loss||0]);
+    await saveToSheet('Investments', rows);
+    renderInvestments();
+    setStatus('inv-status','success',`✓ ${holdings.length} holdings saved for ${month}`);
+    setTimeout(() => showPage('investments', document.querySelectorAll('.nav-tab')[2]), 800);
+  } catch(err) {
+    setStatus('inv-status','error','✗ ' + err.message);
+  }
+  document.getElementById('inv-btn').disabled = false;
+}
+
+function renderExpenses() {
+  const months = [...new Set(expenseData.map(e => e.month))];
+  if (!selExpMonth || !months.includes(selExpMonth)) selExpMonth = months[months.length-1];
+  document.getElementById('exp-chips').innerHTML = months.map(m =>
+    `<button class="chip ${m===selExpMonth?'active':''}" onclick="selExpMonth='${m}';renderExpenses()">${m}</button>`).join('');
+  const data = expenseData.filter(e => e.month === selExpMonth);
+  const total = data.reduce((s,t) => s + Number(t.amount||0), 0);
+  const catTotals = {};
+  CATEGORIES.forEach(c => catTotals[c] = 0);
+  data.forEach(t => { catTotals[t.category] = (catTotals[t.category]||0) + Number(t.amount||0); });
+  const top = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('exp-metrics').innerHTML = `
+    <div class="metric-card"><div class="metric-label">Total spend</div><div class="metric-value">${fmt(total)}</div><div class="metric-sub">${selExpMonth}</div></div>
+    <div class="metric-card"><div class="metric-label">Transactions</div><div class="metric-value">${data.length}</div><div class="metric-sub">this month</div></div>
+    <div class="metric-card"><div class="metric-label">Avg per txn</div><div class="metric-value">${data.length?fmt(total/data.length):'—'}</div></div>
+    <div class="metric-card"><div class="metric-label">Top category</div><div class="metric-value" style="font-size:14px;padding-top:4px;">${top?top[0]:'—'}</div></div>
+  `;
+  document.getElementById('exp-cats').innerHTML = Object.entries(catTotals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>{
+    const pct = total>0?Math.round(val/total*100):0;
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-meta"><span class="cat-bar-name">${cat}</span><span class="cat-bar-val">${fmt(val)} · ${pct}%</span></div>
+      <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${pct}%;background:${CAT_COLORS[cat]||'#555'}"></div></div>
+    </div>`;
+  }).join('') || '<p style="font-size:13px;color:var(--text3);">No data</p>';
+  const recent = [...data].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20);
+  document.getElementById('exp-txns').innerHTML = recent.map(t=>`
+    <div class="txn-row">
+      <div class="txn-left"><div class="txn-name">${t.description}</div><div class="txn-date">${t.date}</div></div>
+      <div class="txn-right"><div class="txn-amount">${fmt(t.amount)}</div><div class="txn-cat">${t.category}</div></div>
+    </div>`).join('');
+  document.getElementById('exp-empty-state').style.display = 'none';
+  document.getElementById('exp-dash').style.display = 'block';
+}
+
+function renderInvestments() {
+  const months = [...new Set(investData.map(i => i.month))];
+  if (!selInvMonth || !months.includes(selInvMonth)) selInvMonth = months[months.length-1];
+  document.getElementById('inv-chips').innerHTML = months.map(m =>
+    `<button class="chip ${m===selInvMonth?'active':''}" onclick="selInvMonth='${m}';renderInvestments()">${m}</button>`).join('');
+  const data = investData.filter(i => i.month === selInvMonth);
+  const totalVal = data.reduce((s,h) => s+Number(h.current_value||0), 0);
+  const totalGL = data.reduce((s,h) => s+Number(h.gain_loss||0), 0);
+  const stocks = data.filter(h=>h.type==='Stocks');
+  const mfs = data.filter(h=>h.type==='Mutual Fund');
+  const sVal = stocks.reduce((s,h)=>s+Number(h.current_value||0),0);
+  const mVal = mfs.reduce((s,h)=>s+Number(h.current_value||0),0);
+  const glClass = totalGL>=0?'pos':'neg';
+  document.getElementById('inv-metrics').innerHTML = `
+    <div class="metric-card"><div class="metric-label">Portfolio value</div><div class="metric-value">${fmt(totalVal)}</div><div class="metric-sub">${selInvMonth}</div></div>
+    <div class="metric-card"><div class="metric-label">Gain / loss</div><div class="metric-value ${glClass}" style="font-size:18px;">${totalGL>=0?'+':''}${fmt(totalGL)}</div></div>
+    <div class="metric-card"><div class="metric-label">Stocks</div><div class="metric-value" style="font-size:18px;">${stocks.length}</div><div class="metric-sub">${fmt(sVal)}</div></div>
+    <div class="metric-card"><div class="metric-label">Mutual funds</div><div class="metric-value" style="font-size:18px;">${mfs.length}</div><div class="metric-sub">${fmt(mVal)}</div></div>
+  `;
+  const sPct = totalVal>0?Math.round(sVal/totalVal*100):50;
+  document.getElementById('inv-split').innerHTML = `
+    <div class="split-bar">
+      <div class="split-seg" style="width:${sPct}%;background:#89b4fa;"></div>
+      <div class="split-seg" style="width:${100-sPct}%;background:#a8e6a3;"></div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:12px;color:var(--text2);">
+      <span style="color:#89b4fa;">● Stocks ${sPct}%</span>
+      <span style="color:#a8e6a3;">● Mutual funds ${100-sPct}%</span>
+    </div>
+  `;
+  document.getElementById('inv-holdings').innerHTML = [...data].sort((a,b)=>b.current_value-a.current_value).map(h=>{
+    const gl = Number(h.gain_loss||0);
+    return `<div class="holding-row">
+      <div><div class="holding-name">${h.name}</div><div class="holding-type" style="color:${h.type==='Stocks'?'#89b4fa':'#a8e6a3'}">${h.type}</div></div>
+      <div class="holding-vals">
+        <div class="holding-val">${fmt(h.current_value)}</div>
+        <div class="holding-gl ${gl>=0?'pos':'neg'}">${gl>=0?'+':''}${fmt(gl)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('inv-empty-state').style.display = 'none';
+  document.getElementById('inv-dash').style.display = 'block';
+}
+</script>
+</body>
+</html>
