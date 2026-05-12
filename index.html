@@ -392,10 +392,34 @@ async function callClaude(messages, system) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, system, messages })
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 4096, system, messages })
   });
   const d = await r.json();
   return d.content?.map(b => b.text || '').join('') || '';
+}
+
+function safeParseJSON(raw) {
+  // Clean markdown fences
+  let cleaned = raw.replace(/```json|```/g, '').trim();
+  // Try direct parse first
+  try { return JSON.parse(cleaned); } catch(e) {}
+  // Try to extract just the JSON object
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start !== -1 && end !== -1) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
+  }
+  // Try to salvage truncated transactions array by closing it
+  const arrStart = cleaned.indexOf('[');
+  const lastComma = cleaned.lastIndexOf('},');
+  if (arrStart !== -1 && lastComma !== -1) {
+    try {
+      const salvaged = cleaned.slice(0, lastComma + 1) + ']}';
+      const fixedKey = salvaged.startsWith('{"transactions') ? salvaged : '{"transactions":' + salvaged.slice(arrStart) ;
+      return JSON.parse(fixedKey);
+    } catch(e) {}
+  }
+  throw new Error('Could not parse response from AI. Please try again.');
 }
 
 async function saveToSheet(tab, rows) {
@@ -423,7 +447,7 @@ async function processExpenses() {
         {type:'text', text:`Extract all transactions from this ${bank} credit card statement for ${month}. Return only JSON.`}
       ]
     }], system);
-    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const parsed = safeParseJSON(raw);
     const txns = parsed.transactions || [];
     if (!txns.length) throw new Error('No transactions found in PDF');
     txns.forEach(t => t.month = month);
@@ -455,7 +479,7 @@ async function processInvestments() {
         {type:'text', text:`Extract all holdings from this ${platform} statement for ${month}. Return only JSON.`}
       ]
     }], system);
-    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const parsed = safeParseJSON(raw);
     const holdings = parsed.holdings || [];
     if (!holdings.length) throw new Error('No holdings found in PDF');
     holdings.forEach(h => h.month = month);
