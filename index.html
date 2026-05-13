@@ -241,7 +241,7 @@ textarea::placeholder { color: var(--text3); }
 </div>
 
 <script>
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx7HO0AEvw4otJF8swBQTOMkMEJdJ2b-p4XaQev1-DQOcx6pZcj4iI3HGAZyuJ9uVXgiA/exec';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxhij-_ogUm5T1wZqJg3ayv9bvoOCEbKuRz25gtm32Tx_7au24CJXIqoCirSwMqdpDv6g/exec';
 const CATS = ['Food & dining','Travel & transport','Shopping','Bills & utilities','Health','Entertainment','Other'];
 const CAT_COLORS = {'Food & dining':'#EF9F27','Travel & transport':'#378ADD','Shopping':'#D4537E','Bills & utilities':'#a8e6a3','Health':'#E24B4A','Entertainment':'#cba6f7','Other':'#555'};
 let expData=[], invData=[], selExpMonth=null, selInvMonth=null;
@@ -270,7 +270,7 @@ function safeParseJSON(raw) {
   throw new Error('Invalid JSON — copy the full response from Claude');
 }
 async function saveToSheet(tab, rows) {
-  try { await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({tab,rows})}); } catch(e) {}
+  try { await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tab,rows})}); } catch(e) { console.error(e); }
 }
 async function saveExpenses() {
   const raw=document.getElementById('exp-json').value.trim();
