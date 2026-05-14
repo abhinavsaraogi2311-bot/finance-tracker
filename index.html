@@ -328,16 +328,17 @@ async function saveExpenses(){
 async function saveInvestments(){
   const raw=document.getElementById('inv-json').value.trim();
   const month=document.getElementById('inv-month').value||'Unknown';
+  const platform=document.getElementById('inv-platform').value;
   if(!raw){setStatus('inv-status','err','✗ Please paste the JSON from Claude first');return;}
   setStatus('inv-status','loading','⏳ Saving to Google Sheet...');
   try{
     const parsed=safeParseJSON(raw);
     const holdings=parsed.holdings||[];
     if(!holdings.length) throw new Error('No holdings found in the JSON');
-    holdings.forEach(h=>h.month=month);
-    invData=[...invData.filter(i=>i.month!==month),...holdings];
-    await saveToSheet('Investments',holdings.map(h=>[month,h.name||'',h.type||'',h.quantity||0,h.avg_price||0,h.current_value||0,h.gain_loss||0]));
-    setStatus('inv-status','ok',`✓ ${holdings.length} holdings saved for ${month}`);
+    holdings.forEach(h=>{h.month=month;h.platform=platform;});
+    invData=[...invData.filter(i=>!(i.month===month&&i.platform===platform)),...holdings];
+    await saveToSheet('Investments',holdings.map(h=>[month,platform,h.name||'',h.type||'',h.quantity||0,h.avg_price||0,h.current_value||0,h.gain_loss||0]));
+    setStatus('inv-status','ok',`✓ ${holdings.length} holdings from ${platform} saved for ${month}`);
     document.getElementById('inv-json').value='';
     renderInvestments();
     setTimeout(()=>{document.querySelectorAll('.nav-tab')[2].click();document.querySelectorAll('.mobile-tab')[2].click();},900);
@@ -396,7 +397,7 @@ function renderInvestments(){
   const sVal=stocks.reduce((s,h)=>s+Number(h.current_value||0),0);
   const glCol=totalGL>=0?'var(--green)':'var(--red)';
   document.getElementById('inv-metrics').innerHTML=`
-    <div class="metric"><div class="metric-label">Portfolio value</div><div class="metric-value">${fmt(totalVal)}</div><div class="metric-sub">${selInvMonth}</div></div>
+    <div class="metric"><div class="metric-label">Portfolio value</div><div class="metric-value">${fmt(totalVal)}</div><div class="metric-sub">${selInvMonth} · ${[...new Set(data.map(d=>d.platform).filter(Boolean))].join(', ')||'—'}</div></div>
     <div class="metric"><div class="metric-label">Gain / loss</div><div class="metric-value" style="font-size:18px;color:${glCol}">${totalGL>=0?'+':''}${fmt(totalGL)}</div></div>
     <div class="metric"><div class="metric-label">Stocks</div><div class="metric-value">${stocks.length}</div><div class="metric-sub">${fmt(sVal)}</div></div>
     <div class="metric"><div class="metric-label">Mutual funds</div><div class="metric-value">${mfs.length}</div></div>`;
@@ -413,7 +414,7 @@ function renderInvestments(){
   document.getElementById('inv-holdings').innerHTML=[...data].sort((a,b)=>b.current_value-a.current_value).map(h=>{
     const gl=Number(h.gain_loss||0);
     return `<div class="txn-row">
-      <div><div class="txn-name">${h.name}</div><div class="txn-date" style="color:${h.type==='Stocks'?'#89b4fa':'#a8e6a3'}">${h.type}</div></div>
+      <div><div class="txn-name">${h.name}</div><div class="txn-date" style="color:${h.type==='Stocks'?'#89b4fa':'#a8e6a3'}">${h.type}${h.platform?' · '+h.platform:''}</div></div>
       <div><div class="txn-amt">${fmt(h.current_value)}</div><div class="txn-cat" style="color:${gl>=0?'var(--green)':'var(--red)'}">${gl>=0?'+':''}${fmt(gl)}</div></div>
     </div>`;
   }).join('');
