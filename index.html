@@ -100,9 +100,15 @@ canvas{width:100%!important;}
   .mobile-tabs{display:flex;}.page{padding:14px 14px 90px;}
   .field-row{grid-template-columns:1fr;}.metrics{grid-template-columns:1fr 1fr;}
 }
+
+.load-banner{position:fixed;top:0;left:0;right:0;z-index:200;padding:10px 20px;font-size:13px;font-family:'DM Mono',monospace;text-align:center;transition:all 0.3s;}
+.load-banner.loading{background:#1a1a2e;color:var(--blue);border-bottom:1px solid rgba(137,180,250,0.2);}
+.load-banner.ok{background:#0d1f0d;color:var(--green);border-bottom:1px solid rgba(168,230,163,0.2);}
+.load-banner.err{background:#1f0d0d;color:var(--red);border-bottom:1px solid rgba(240,152,152,0.2);}
 </style>
 </head>
 <body>
+<div id="load-banner" class="load-banner loading">⏳ Loading your data from Google Sheet...</div>
 
 <nav>
   <div class="nav-logo">💰 <span>Finance</span>Tracker</div>
@@ -266,9 +272,65 @@ canvas{width:100%!important;}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+async function loadFromSheet() {
+  try {
+    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const data = await res.json();
+
+    if (data.expenses && data.expenses.length) {
+      expData = data.expenses.map(e => ({
+        month: String(e.month||''),
+        bank: String(e.bank||''),
+        date: String(e.date||''),
+        description: String(e.description||''),
+        amount: Number(e.amount||0),
+        category: String(e.category||'Other')
+      })).filter(e => e.amount > 0);
+    }
+
+    if (data.investments && data.investments.length) {
+      invData = data.investments.map(h => ({
+        month: String(h.month||''),
+        platform: String(h.platform||''),
+        name: String(h.name||''),
+        type: String(h.type||''),
+        quantity: Number(h.quantity||0),
+        avg_price: Number(h.avg_price||0),
+        current_value: Number(h.current_value||0),
+        gain_loss: Number(h.gain_loss||0)
+      })).filter(h => h.name);
+    }
+
+    if (expData.length) renderExpenses();
+    if (invData.length) renderInvestments();
+
+    const banner = document.getElementById('load-banner');
+    if (banner) {
+      if (expData.length || invData.length) {
+        banner.textContent = '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet';
+        banner.className = 'load-banner ok';
+      } else {
+        banner.style.display = 'none';
+      }
+      setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
+    }
+  } catch(err) {
+    const banner = document.getElementById('load-banner');
+    if (banner) {
+      banner.textContent = '⚠ Could not load from Sheet — check your connection';
+      banner.className = 'load-banner err';
+      setTimeout(() => { if(banner) banner.style.display='none'; }, 5000);
+    }
+  }
+}
+
+// Load data on startup
+window.addEventListener('DOMContentLoaded', loadFromSheet);
+
+</script>
 <script>
-const SHEET_URL='https://script.google.com/macros/s/AKfycbxhij-_ogUm5T1wZqJg3ayv9bvoOCEbKuRz25gtm32Tx_7au24CJXIqoCirSwMqdpDv6g/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzupt-R9HlC8nrJ2e3Km9WXAu0rnSicQw7Y2Clzs17mfvUv4DEha5eC_EfpscJv5j-acQ/exec';
 const CATS=['Food & dining','Travel & transport','Shopping','Bills & utilities','Health','Entertainment','Other'];
 const CAT_COLORS={'Food & dining':'#EF9F27','Travel & transport':'#378ADD','Shopping':'#D4537E','Bills & utilities':'#a8e6a3','Health':'#E24B4A','Entertainment':'#cba6f7','Other':'#555'};
 
@@ -502,6 +564,62 @@ function renderOverview(){
     <div class="metric"><div class="metric-label">Avg monthly spend</div><div class="metric-value">${fmt(avgExp)}</div><div class="metric-sub">across ${expMonths.length} month(s)</div></div>
     <div class="metric"><div class="metric-label">Portfolio value</div><div class="metric-value">${fmt(latestInv)}</div><div class="metric-sub">${latestInvMonth||'—'}</div></div>`;
 }
+
+async function loadFromSheet() {
+  try {
+    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const data = await res.json();
+
+    if (data.expenses && data.expenses.length) {
+      expData = data.expenses.map(e => ({
+        month: String(e.month||''),
+        bank: String(e.bank||''),
+        date: String(e.date||''),
+        description: String(e.description||''),
+        amount: Number(e.amount||0),
+        category: String(e.category||'Other')
+      })).filter(e => e.amount > 0);
+    }
+
+    if (data.investments && data.investments.length) {
+      invData = data.investments.map(h => ({
+        month: String(h.month||''),
+        platform: String(h.platform||''),
+        name: String(h.name||''),
+        type: String(h.type||''),
+        quantity: Number(h.quantity||0),
+        avg_price: Number(h.avg_price||0),
+        current_value: Number(h.current_value||0),
+        gain_loss: Number(h.gain_loss||0)
+      })).filter(h => h.name);
+    }
+
+    if (expData.length) renderExpenses();
+    if (invData.length) renderInvestments();
+
+    const banner = document.getElementById('load-banner');
+    if (banner) {
+      if (expData.length || invData.length) {
+        banner.textContent = '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet';
+        banner.className = 'load-banner ok';
+      } else {
+        banner.style.display = 'none';
+      }
+      setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
+    }
+  } catch(err) {
+    const banner = document.getElementById('load-banner');
+    if (banner) {
+      banner.textContent = '⚠ Could not load from Sheet — check your connection';
+      banner.className = 'load-banner err';
+      setTimeout(() => { if(banner) banner.style.display='none'; }, 5000);
+    }
+  }
+}
+
+// Load data on startup
+window.addEventListener('DOMContentLoaded', loadFromSheet);
+
 </script>
 </body>
 </html>
