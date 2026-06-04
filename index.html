@@ -506,7 +506,7 @@ function renderOverview(){
         backgroundColor:'rgba(245,200,66,0.08)',
         borderWidth:2,
         pointBackgroundColor:'#f5c842',
-        pointRadius:4,
+        pointRadius:5,
         tension:0.3,
         fill:true
       }]
@@ -515,8 +515,15 @@ function renderOverview(){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
       scales:{
-        x:{ticks:{color:'#555',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{ticks:{color:'#555',font:{size:11},callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})},grid:{color:'rgba(255,255,255,0.04)'}}
+        x:{
+          type:'category',
+          ticks:{color:'#999',font:{size:11},maxRotation:0},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        },
+        y:{
+          ticks:{color:'#555',font:{size:11},callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        }
       }
     }
   });
@@ -534,7 +541,7 @@ function renderOverview(){
     data:{
       labels:invMonths,
       datasets:[
-        {label:'Total Portfolio',data:invTotals,borderColor:'#a8e6a3',backgroundColor:'rgba(168,230,163,0.06)',borderWidth:2,pointBackgroundColor:'#a8e6a3',pointRadius:4,tension:0.3,fill:true},
+        {label:'Total Portfolio',data:invTotals,borderColor:'#a8e6a3',backgroundColor:'rgba(168,230,163,0.06)',borderWidth:2,pointBackgroundColor:'#a8e6a3',pointRadius:5,tension:0.3,fill:true},
         {label:'Stocks',data:stockTotals,borderColor:'#89b4fa',backgroundColor:'transparent',borderWidth:1.5,pointBackgroundColor:'#89b4fa',pointRadius:3,tension:0.3,borderDash:[4,3]},
         {label:'Mutual Funds',data:mfTotals,borderColor:'#cba6f7',backgroundColor:'transparent',borderWidth:1.5,pointBackgroundColor:'#cba6f7',pointRadius:3,tension:0.3,borderDash:[4,3]}
       ]
@@ -543,8 +550,15 @@ function renderOverview(){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmt(ctx.raw)}}},
       scales:{
-        x:{ticks:{color:'#555',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{ticks:{color:'#555',font:{size:11},callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})},grid:{color:'rgba(255,255,255,0.04)'}}
+        x:{
+          type:'category',
+          ticks:{color:'#999',font:{size:11},maxRotation:0},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        },
+        y:{
+          ticks:{color:'#555',font:{size:11},callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        }
       }
     }
   });
