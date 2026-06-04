@@ -273,16 +273,53 @@ canvas{width:100%!important;}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+function cleanMonth(val) {
+  if (!val) return '';
+  const s = String(val);
+  if (!s.includes('T') && !s.match(/^\d{4}-\d{2}-\d{2}/)) return s; // already clean text
+  try {
+    const d = new Date(s);
+    if (!isNaN(d)) {
+      // Google Sheets stores end-of-month as last day at 18:30 UTC (= midnight IST next day)
+      // Subtract 1 day to get back to correct month
+      const adjusted = new Date(d.getTime() - 24*60*60*1000);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[adjusted.getUTCMonth()] + ' ' + adjusted.getUTCFullYear();
+    }
+  } catch(e) {}
+  return s;
+}
+
+function cleanDate(val) {
+  if (!val) return '';
+  const s = String(val);
+  if (!s.includes('T') && !s.match(/^\d{4}-\d{2}-\d{2}/)) return s; // already clean
+  try {
+    const d = new Date(s);
+    if (!isNaN(d)) {
+      // Subtract 1 day to correct for IST midnight offset
+      const adjusted = new Date(d.getTime() - 24*60*60*1000);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const day = String(adjusted.getUTCDate()).padStart(2,'0');
+      return day + ' ' + months[adjusted.getUTCMonth()] + ' ' + adjusted.getUTCFullYear();
+    }
+  } catch(e) {}
+  return s;
+}
+
 async function loadFromSheet() {
   try {
-    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const res = await fetch(SHEET_URL + '?t=' + Date.now(), {
+      method: 'GET',
+      redirect: 'follow'
+    });
     const data = await res.json();
 
     if (data.expenses && data.expenses.length) {
       expData = data.expenses.map(e => ({
-        month: String(e.month||''),
+        month: cleanMonth(e.month),
         bank: String(e.bank||''),
-        date: String(e.date||''),
+        date: cleanDate(e.date),
         description: String(e.description||''),
         amount: Number(e.amount||0),
         category: String(e.category||'Other')
@@ -291,7 +328,7 @@ async function loadFromSheet() {
 
     if (data.investments && data.investments.length) {
       invData = data.investments.map(h => ({
-        month: String(h.month||''),
+        month: cleanMonth(h.month),
         platform: String(h.platform||''),
         name: String(h.name||''),
         type: String(h.type||''),
@@ -330,7 +367,7 @@ window.addEventListener('DOMContentLoaded', loadFromSheet);
 
 </script>
 <script>
-const SHEET_URL='https://script.google.com/macros/s/AKfycbzupt-R9HlC8nrJ2e3Km9WXAu0rnSicQw7Y2Clzs17mfvUv4DEha5eC_EfpscJv5j-acQ/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycby7Dl9BQuqiof7UQwKm9pvJddH9Op3rfzwPEywZRRrsUvHWXUjwgrFajOl_wxvaGW7Dbg/exec';
 const CATS=['Food & dining','Travel & transport','Shopping','Bills & utilities','Health','Entertainment','Other'];
 const CAT_COLORS={'Food & dining':'#EF9F27','Travel & transport':'#378ADD','Shopping':'#D4537E','Bills & utilities':'#a8e6a3','Health':'#E24B4A','Entertainment':'#cba6f7','Other':'#555'};
 
@@ -581,14 +618,17 @@ function renderOverview(){
 
 async function loadFromSheet() {
   try {
-    const res = await fetch(SHEET_URL + '?t=' + Date.now());
+    const res = await fetch(SHEET_URL + '?t=' + Date.now(), {
+      method: 'GET',
+      redirect: 'follow'
+    });
     const data = await res.json();
 
     if (data.expenses && data.expenses.length) {
       expData = data.expenses.map(e => ({
-        month: String(e.month||''),
+        month: cleanMonth(e.month),
         bank: String(e.bank||''),
-        date: String(e.date||''),
+        date: cleanDate(e.date),
         description: String(e.description||''),
         amount: Number(e.amount||0),
         category: String(e.category||'Other')
@@ -597,7 +637,7 @@ async function loadFromSheet() {
 
     if (data.investments && data.investments.length) {
       invData = data.investments.map(h => ({
-        month: String(h.month||''),
+        month: cleanMonth(h.month),
         platform: String(h.platform||''),
         name: String(h.name||''),
         type: String(h.type||''),
