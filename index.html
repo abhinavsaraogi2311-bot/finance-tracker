@@ -272,7 +272,8 @@ canvas{width:100%!important;}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
 function cleanMonth(val) {
   if (!val) return '';
   const s = String(val);
@@ -280,9 +281,9 @@ function cleanMonth(val) {
   try {
     const d = new Date(s);
     if (!isNaN(d)) {
-      // Google Sheets stores end-of-month as last day at 18:30 UTC (= midnight IST next day)
-      // Subtract 1 day to get back to correct month
-      const adjusted = new Date(d.getTime() - 24*60*60*1000);
+      // Google Sheets stores month as last day of previous month at 18:30 UTC
+      // Adding 1 day (+ IST offset) gives the correct month
+      const adjusted = new Date(d.getTime() + 24*60*60*1000);
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return months[adjusted.getUTCMonth()] + ' ' + adjusted.getUTCFullYear();
     }
@@ -297,8 +298,8 @@ function cleanDate(val) {
   try {
     const d = new Date(s);
     if (!isNaN(d)) {
-      // Subtract 1 day to correct for IST midnight offset
-      const adjusted = new Date(d.getTime() - 24*60*60*1000);
+      // Add 1 day to correct for IST offset
+      const adjusted = new Date(d.getTime() + 24*60*60*1000);
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const day = String(adjusted.getUTCDate()).padStart(2,'0');
       return day + ' ' + months[adjusted.getUTCMonth()] + ' ' + adjusted.getUTCFullYear();
@@ -307,59 +308,81 @@ function cleanDate(val) {
   return s;
 }
 
-async function loadFromSheet() {
-  try {
-    const res = await fetch(SHEET_URL + '?t=' + Date.now(), {
-      method: 'GET',
-      redirect: 'follow'
-    });
-    const data = await res.json();
+function loadFromSheet() {
+  // Use JSONP to bypass CORS redirect issue with Apps Script
+  return new Promise((resolve) => {
+    const callbackName = 'gsCallback_' + Date.now();
+    const script = document.createElement('script');
+    
+    // Set a timeout in case it fails
+    const timeout = setTimeout(() => {
+      cleanup();
+      showBanner('err', '⚠ Could not load from Sheet — check your connection');
+      resolve();
+    }, 10000);
 
-    if (data.expenses && data.expenses.length) {
-      expData = data.expenses.map(e => ({
-        month: cleanMonth(e.month),
-        bank: String(e.bank||''),
-        date: cleanDate(e.date),
-        description: String(e.description||''),
-        amount: Number(e.amount||0),
-        category: String(e.category||'Other')
-      })).filter(e => e.amount > 0);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
     }
 
-    if (data.investments && data.investments.length) {
-      invData = data.investments.map(h => ({
-        month: cleanMonth(h.month),
-        platform: String(h.platform||''),
-        name: String(h.name||''),
-        type: String(h.type||''),
-        quantity: Number(h.quantity||0),
-        avg_price: Number(h.avg_price||0),
-        current_value: Number(h.current_value||0),
-        gain_loss: Number(h.gain_loss||0)
-      })).filter(h => h.name);
-    }
-
-    if (expData.length) renderExpenses();
-    if (invData.length) renderInvestments();
-
-    const banner = document.getElementById('load-banner');
-    if (banner) {
-      if (expData.length || invData.length) {
-        banner.textContent = '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet';
-        banner.className = 'load-banner ok';
-      } else {
-        banner.style.display = 'none';
+    window[callbackName] = function(data) {
+      cleanup();
+      try {
+        if (data.expenses && data.expenses.length) {
+          expData = data.expenses.map(e => ({
+            month: cleanMonth(e.month),
+            bank: String(e.bank||''),
+            date: cleanDate(e.date),
+            description: String(e.description||''),
+            amount: Number(e.amount||0),
+            category: String(e.category||'Other')
+          })).filter(e => e.amount > 0);
+        }
+        if (data.investments && data.investments.length) {
+          invData = data.investments.map(h => ({
+            month: cleanMonth(h.month),
+            platform: String(h.platform||''),
+            name: String(h.name||''),
+            type: String(h.type||''),
+            quantity: Number(h.quantity||0),
+            avg_price: Number(h.avg_price||0),
+            current_value: Number(h.current_value||0),
+            gain_loss: Number(h.gain_loss||0)
+          })).filter(h => h.name);
+        }
+        if (expData.length) renderExpenses();
+        if (invData.length) renderInvestments();
+        if (expData.length || invData.length) {
+          showBanner('ok', '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet');
+        } else {
+          const b = document.getElementById('load-banner');
+          if (b) b.style.display = 'none';
+        }
+      } catch(e) {
+        showBanner('err', '⚠ Error processing data: ' + e.message);
       }
-      setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
-    }
-  } catch(err) {
-    const banner = document.getElementById('load-banner');
-    if (banner) {
-      banner.textContent = '⚠ Could not load from Sheet — check your connection';
-      banner.className = 'load-banner err';
-      setTimeout(() => { if(banner) banner.style.display='none'; }, 5000);
-    }
-  }
+      resolve();
+    };
+
+    script.src = SHEET_URL + '?callback=' + callbackName + '&t=' + Date.now();
+    script.onerror = () => {
+      cleanup();
+      showBanner('err', '⚠ Could not load from Sheet — check your connection');
+      resolve();
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function showBanner(type, msg) {
+  const banner = document.getElementById('load-banner');
+  if (!banner) return;
+  banner.textContent = msg;
+  banner.className = 'load-banner ' + type;
+  banner.style.display = 'block';
+  setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
 }
 
 // Load data on startup
@@ -367,7 +390,7 @@ window.addEventListener('DOMContentLoaded', loadFromSheet);
 
 </script>
 <script>
-const SHEET_URL='https://script.google.com/macros/s/AKfycby7Dl9BQuqiof7UQwKm9pvJddH9Op3rfzwPEywZRRrsUvHWXUjwgrFajOl_wxvaGW7Dbg/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzHEnDqBtVqEu3GcdkRiWYUApS5AdjP9iwSYdyzc_8u7isOxEG7Q5g0_3SpLSkYBFMH6w/exec';
 const CATS=['Food & dining','Travel & transport','Shopping','Bills & utilities','Health','Entertainment','Other'];
 const CAT_COLORS={'Food & dining':'#EF9F27','Travel & transport':'#378ADD','Shopping':'#D4537E','Bills & utilities':'#a8e6a3','Health':'#E24B4A','Entertainment':'#cba6f7','Other':'#555'};
 
@@ -616,59 +639,81 @@ function renderOverview(){
     <div class="metric"><div class="metric-label">Portfolio value</div><div class="metric-value">${fmt(latestInv)}</div><div class="metric-sub">${latestInvMonth||'—'}</div></div>`;
 }
 
-async function loadFromSheet() {
-  try {
-    const res = await fetch(SHEET_URL + '?t=' + Date.now(), {
-      method: 'GET',
-      redirect: 'follow'
-    });
-    const data = await res.json();
+function loadFromSheet() {
+  // Use JSONP to bypass CORS redirect issue with Apps Script
+  return new Promise((resolve) => {
+    const callbackName = 'gsCallback_' + Date.now();
+    const script = document.createElement('script');
+    
+    // Set a timeout in case it fails
+    const timeout = setTimeout(() => {
+      cleanup();
+      showBanner('err', '⚠ Could not load from Sheet — check your connection');
+      resolve();
+    }, 10000);
 
-    if (data.expenses && data.expenses.length) {
-      expData = data.expenses.map(e => ({
-        month: cleanMonth(e.month),
-        bank: String(e.bank||''),
-        date: cleanDate(e.date),
-        description: String(e.description||''),
-        amount: Number(e.amount||0),
-        category: String(e.category||'Other')
-      })).filter(e => e.amount > 0);
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
     }
 
-    if (data.investments && data.investments.length) {
-      invData = data.investments.map(h => ({
-        month: cleanMonth(h.month),
-        platform: String(h.platform||''),
-        name: String(h.name||''),
-        type: String(h.type||''),
-        quantity: Number(h.quantity||0),
-        avg_price: Number(h.avg_price||0),
-        current_value: Number(h.current_value||0),
-        gain_loss: Number(h.gain_loss||0)
-      })).filter(h => h.name);
-    }
-
-    if (expData.length) renderExpenses();
-    if (invData.length) renderInvestments();
-
-    const banner = document.getElementById('load-banner');
-    if (banner) {
-      if (expData.length || invData.length) {
-        banner.textContent = '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet';
-        banner.className = 'load-banner ok';
-      } else {
-        banner.style.display = 'none';
+    window[callbackName] = function(data) {
+      cleanup();
+      try {
+        if (data.expenses && data.expenses.length) {
+          expData = data.expenses.map(e => ({
+            month: cleanMonth(e.month),
+            bank: String(e.bank||''),
+            date: cleanDate(e.date),
+            description: String(e.description||''),
+            amount: Number(e.amount||0),
+            category: String(e.category||'Other')
+          })).filter(e => e.amount > 0);
+        }
+        if (data.investments && data.investments.length) {
+          invData = data.investments.map(h => ({
+            month: cleanMonth(h.month),
+            platform: String(h.platform||''),
+            name: String(h.name||''),
+            type: String(h.type||''),
+            quantity: Number(h.quantity||0),
+            avg_price: Number(h.avg_price||0),
+            current_value: Number(h.current_value||0),
+            gain_loss: Number(h.gain_loss||0)
+          })).filter(h => h.name);
+        }
+        if (expData.length) renderExpenses();
+        if (invData.length) renderInvestments();
+        if (expData.length || invData.length) {
+          showBanner('ok', '✓ Loaded ' + expData.length + ' transactions & ' + invData.length + ' holdings from Google Sheet');
+        } else {
+          const b = document.getElementById('load-banner');
+          if (b) b.style.display = 'none';
+        }
+      } catch(e) {
+        showBanner('err', '⚠ Error processing data: ' + e.message);
       }
-      setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
-    }
-  } catch(err) {
-    const banner = document.getElementById('load-banner');
-    if (banner) {
-      banner.textContent = '⚠ Could not load from Sheet — check your connection';
-      banner.className = 'load-banner err';
-      setTimeout(() => { if(banner) banner.style.display='none'; }, 5000);
-    }
-  }
+      resolve();
+    };
+
+    script.src = SHEET_URL + '?callback=' + callbackName + '&t=' + Date.now();
+    script.onerror = () => {
+      cleanup();
+      showBanner('err', '⚠ Could not load from Sheet — check your connection');
+      resolve();
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function showBanner(type, msg) {
+  const banner = document.getElementById('load-banner');
+  if (!banner) return;
+  banner.textContent = msg;
+  banner.className = 'load-banner ' + type;
+  banner.style.display = 'block';
+  setTimeout(() => { if(banner) banner.style.display='none'; }, 4000);
 }
 
 // Load data on startup
